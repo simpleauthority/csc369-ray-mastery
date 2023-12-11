@@ -4,8 +4,9 @@ import os
 import numpy as np
 import itertools
 import time
+import json
 
-bucket_size_threshold = 500 # only actually sample sort if data length larger than this 
+bucket_size_threshold = 50000 # only actually sample sort if data length larger than this 
 
 def timeable_function(func):
     def wrapper(*args, **kwargs):
@@ -20,8 +21,8 @@ def timeable_function(func):
 
 @timeable_function
 def load_data():
-    f = open("input-unsorted.txt", "r")
-    data = [int(l.strip()) for l in f.readlines()]
+    f = open("random_numbers.txt", "r")
+    data = [float(l.strip()) for l in f.readlines()]
     f.close()
     return data
 
@@ -47,7 +48,7 @@ def ss_build_buckets(data, splitters):
             buckets[-1].append(datum)
     return buckets
 
-@ray.remote(num_cpus=8)
+@ray.remote
 def sample_sort(data, num_buckets):
     if len(data) / num_buckets < bucket_size_threshold:
         return sorted(data)
@@ -70,12 +71,10 @@ def timed_native_sort(data):
 def main():
     print("Initializing ray...")
     ctx = ray.init()
-
-    print("Waiting 10 seconds so you can open the ray dashboard...")
-    time.sleep(10)
     
     print("Loading unsorted data...")
     data = load_data()
+    print(f"...loaded {len(data)} numbers...")
     
     print("Sorting with native sorted() function...")
     native = timed_native_sort(data)
